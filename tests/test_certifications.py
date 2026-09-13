@@ -30,3 +30,28 @@ def test_certification_store_supports_crud(tmp_path: Path) -> None:
     assert certification.hands_on is False
     assert store.remove(certification_id)
     assert store.find(certification_id) is None
+
+
+def test_format_certification() -> None:
+    from bot.certifications import format_certification
+    from bot.storage import Certification
+
+    free_cert = Certification(
+        id=1,
+        name="Intro to Cyber",
+        provider="Cisco",
+        url="https://cisco.test",
+        is_free=True,
+        hands_on=False,
+    )
+    assert format_certification(free_cert) == "1. Cisco: [Intro to Cyber](https://cisco.test) (Free & Theoretical)"
+
+    paid_cert = Certification(
+        id=2,
+        name="OSCP",
+        provider="OffSec",
+        url="https://offsec.test",
+        is_free=False,
+        hands_on=True,
+    )
+    assert format_certification(paid_cert) == "2. OffSec: [OSCP](https://offsec.test) (Paid & Hands-on)"

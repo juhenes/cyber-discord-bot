@@ -1,39 +1,107 @@
-# Weekly CTF Discord Bot
+# Cybersecurity Community Discord Bot
 
-This bot posts the upcoming **online** CTFtime events once a week and includes each event's weight. It exposes `/ctfs` for an on-demand list and `/health` for Raspberry Pi temperature, power, memory, storage, and uptime status. The code is split into provider, formatting, storage, scheduling, health, and Discord entrypoint modules so new slash commands can be added without changing the announcement logic.
+An automated Discord bot tailored for cybersecurity communities and clubs. It delivers weekly online CTF announcements from CTFtime, manages a community catalog of cybersecurity certifications, monitors Raspberry Pi host health, and provides interactive slash commands.
 
-## Setup
+---
 
-1. Create a Discord application and bot, then enable the bot's `Send Messages` permission in the target channel.
-2. Copy `.env.example` to `.env`, set `DISCORD_TOKEN` and `ANNOUNCEMENT_CHANNEL_ID`, and generate `CRUD_ADMIN_PASSWORD_HASH` with the command shown in `.env.example`.
-3. Install dependencies and run the tests:
+## Features
 
+- 🚩 **Weekly CTF Announcements**: Automatically discovers and posts upcoming online CTFs from CTFtime once a week, formatted in UTC+8 with competition weights, formats, and event links.
+- 📜 **Certifications Directory (`/certifications`)**: Community catalog of cybersecurity certifications with full CRUD support, categorizing certifications as Free/Paid and Hands-on/Theoretical. Sensitive actions (delete) are secured with an admin password hash.
+- 🩺 **Host & Hardware Health Monitoring (`/health`)**: Reports real-time Raspberry Pi telemetry including SoC temperature, power & undervoltage throttling (`vcgencmd`), RAM usage, disk usage, and uptime.
+- 💬 **Slash Commands Suite**: Native Discord application slash commands (`/ctfs`, `/certifications`, `/health`, `/help`).
+- 🛡️ **Hardened & Lightweight**: Runs as a non-root container with dropped Linux capabilities, read-only host mounts, and transactional SQLite storage.
+
+---
+
+## Slash Commands
+
+| Command | Description | Parameters & Options |
+| :--- | :--- | :--- |
+| `/ctfs` | Lists upcoming online CTFs scheduled for the next 7 days. | *None* |
+| `/certifications` | View or manage certifications in the community database. | • `action`: Operation to perform (`create`, `update`, `delete`, or leave empty to list)<br>• `certification_id`: ID of the certification (for `update` or `delete`)<br>• `name`: Certification name<br>• `provider`: Issuing body or platform (e.g. OffSec, CompTIA)<br>• `url`: Link to certification or exam page<br>• `free`: Boolean (`True` for free, `False` for paid)<br>• `hands_on`: Boolean (`True` for practical/lab-based, `False` for theoretical)<br>• `password`: Admin password (required for `delete`) |
+| `/health` | Displays host/Raspberry Pi hardware and system health. | *None* |
+| `/help` | Shows available bot commands and their usage. | *None* |
+
+---
+
+## Configuration
+
+Configuration is loaded from environment variables or a local `.env` file:
+
+| Variable | Required | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `DISCORD_TOKEN` | **Yes** | — | Discord Bot token from the [Discord Developer Portal](https://discord.com/developers/applications). |
+| `ANNOUNCEMENT_CHANNEL_ID` | **Yes** | — | Discord channel ID (integer) where weekly CTF announcements will be posted. |
+| `CRUD_ADMIN_PASSWORD_HASH` | **Yes** | — | PBKDF2-SHA256 password hash required to perform protected operations (e.g. deleting certifications). |
+| `ANNOUNCEMENT_WEEKDAY` | No | `0` | Day of the week for automated announcements (`0` = Monday, `6` = Sunday). |
+| `ANNOUNCEMENT_HOUR_UTC` | No | `9` | Hour of the day (0–23 in UTC) for announcements (e.g. `9` = 09:00 UTC / 17:00 UTC+8). |
+| `DATABASE_PATH` | No | `data/bot.sqlite3` | File path for the SQLite database. |
+| `CTFTIME_API_URL` | No | `https://ctftime.org/api/v1/events/` | CTFtime events API endpoint. |
+
+### Generating the Admin Password Hash
+
+Run the following command to generate the `CRUD_ADMIN_PASSWORD_HASH` for your admin password:
+
+```bash
+python -c "from bot.security import hash_password; print(hash_password('your-strong-password'))"
+```
+
+---
+
+## Getting Started
+
+### Local Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/juhenes/cyber-discord-bot.git
+   cd cyber-discord-bot
+   ```
+
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your DISCORD_TOKEN, ANNOUNCEMENT_CHANNEL_ID, and CRUD_ADMIN_PASSWORD_HASH
+   ```
+
+3. **Install dependencies & run tests**:
    ```bash
    python -m venv .venv
-   source .venv/bin/activate
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    pip install -r requirements.txt
    pytest
    ```
 
-4. Start the bot:
-
+4. **Start the bot**:
    ```bash
    python -m bot.main
    ```
 
-## Docker
+---
 
-Copy `.env.example` to `.env`, set the required values, and start the bot in the background:
+## Docker Deployment
 
-```bash
-docker compose up --build -d
-```
+The bot includes a hardened `Dockerfile` and `docker-compose.yml` pre-configured for deployment on Linux hosts and Raspberry Pis.
 
-The service uses `restart: unless-stopped`, so Docker starts it again after a crash or host reboot. Its SQLite database is stored in the named `bot-data` volume. View logs with `docker compose logs -f bot` and stop it with `docker compose down`.
+1. **Configure `.env`**:
+   ```bash
+   cp .env.example .env
+   # Populate .env with production credentials
+   ```
 
-The `/health` command reads Raspberry Pi temperature, memory, uptime, and power status through narrowly scoped read-only host mounts. The container remains non-root, drops all Linux capabilities, and has no published ports or host networking.
+2. **Launch with Docker Compose**:
+   ```bash
+   docker compose up --build -d
+   ```
 
-On the Raspberry Pi host, grant the video group access to the power-status device once, then make it persistent:
+- **Logs**: View real-time logs with `docker compose logs -f bot`.
+- **Persistence**: SQLite database data is stored in the Docker named volume `bot-data`.
+- **Automatic restarts**: The container uses `restart: unless-stopped` to automatically recover from reboots or transient crashes.
+
+### Raspberry Pi Hardware Health Permissions
+
+For `/health` to read GPU power and throttling alerts via `/dev/vcio` on Raspberry Pi hosts, ensure the container's video group has access:
 
 ```bash
 sudo chmod 660 /dev/vcio
@@ -42,8 +110,29 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-The default announcement is Monday at 09:00 UTC. Change `ANNOUNCEMENT_WEEKDAY` (`0` is Monday) and `ANNOUNCEMENT_HOUR_UTC` if needed. SQLite prevents a restart from posting the same week's announcement twice.
+---
 
-The event source is CTFtime's public API. It filters events using CTFtime's `onsite: false` field; CTFtime is the event directory, while individual competitions may be hosted on CTFd or another platform. If “CTFd” must be a strict filter, the provider is the intended place to add a reliable platform field or allowlist once the desired event source exposes one.
+## Architecture & Codebase Structure
 
-Certifications are managed with `/certifications`. Leave `action` empty to show them. Use `action: create`, `update`, or `delete` for management operations. Create and update accept `free` and `hands_on` flags. Discord slash commands cannot dynamically autofill or show sibling options based on the selected action, so the command keeps these fields optional and validates the fields required by each operation. The output is compact, with each certification name linking to its URL and showing whether it is free/paid and theory/hands-on. The storage and command use reusable CRUD building blocks so another resource can be added later without putting its persistence or commands in `main.py`.
+The bot is organized into focused subpackages separating Discord interactions, business logic, persistence, and utilities:
+
+```text
+bot/
+├── commands/                 # Discord slash command interactions
+│   ├── ctfs.py               # /ctfs: on-demand CTF competition listing
+│   ├── certifications.py     # /certifications: CRUD catalog with admin protection
+│   ├── health.py             # /health: hardware and host telemetry display
+│   └── help.py               # /help: command index and usage instructions
+├── services/                 # Business logic, APIs & background tasks
+│   ├── ctfs.py               # CTF data model and CTFtime API client
+│   ├── announcements.py      # Portable message formatting (UTC+8)
+│   ├── scheduler.py          # Resilient WeeklyCTFAnnouncer task loop
+│   └── system.py             # Pure host telemetry (temperature, power, RAM, disk, uptime)
+├── storage/                  # SQLite persistence & models
+│   ├── database.py           # SQLite connection manager, SQLiteCrudStore, AnnouncementStore, CertificationStore
+│   └── models.py             # Certification data models
+├── utils/                    # Shared utilities
+│   └── security.py           # PBKDF2 password hashing & verification
+├── config.py                 # Configuration parsing and validation (Settings)
+└── main.py                   # Client setup, logging, and command registration
+```
