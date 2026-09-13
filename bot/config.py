@@ -13,6 +13,7 @@ class Settings:
     announcement_weekday: int
     announcement_hour_utc: int
     database_path: Path
+    crud_admin_password_hash: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -28,6 +29,9 @@ class Settings:
         hour = int(os.environ.get("ANNOUNCEMENT_HOUR_UTC", "9"))
         if weekday not in range(7) or hour not in range(24):
             raise ValueError("ANNOUNCEMENT_WEEKDAY must be 0-6 and ANNOUNCEMENT_HOUR_UTC must be 0-23")
+        password_hash = os.environ.get("CRUD_ADMIN_PASSWORD_HASH", "").strip()
+        if not password_hash:
+            raise ValueError("CRUD_ADMIN_PASSWORD_HASH is required")
 
         return cls(
             discord_token=token,
@@ -38,4 +42,5 @@ class Settings:
             announcement_weekday=weekday,
             announcement_hour_utc=hour,
             database_path=Path(os.environ.get("DATABASE_PATH", "data/bot.sqlite3")),
+            crud_admin_password_hash=password_hash,
         )

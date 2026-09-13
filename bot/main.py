@@ -2,11 +2,13 @@ import discord
 from discord import app_commands
 
 from .announcements import format_ctfs
+from .certifications import CertificationsCommand
 from .config import Settings
 from .ctfs import CTFtimeProvider
 from .health import HealthCommand
+from .help import HelpCommand
 from .scheduler import WeeklyCTFAnnouncer
-from .storage import AnnouncementStore
+from .storage import AnnouncementStore, CertificationStore
 
 
 class CTFBot(discord.Client):
@@ -16,13 +18,20 @@ class CTFBot(discord.Client):
         self.commands = app_commands.CommandTree(self)
         self.provider = CTFtimeProvider(settings.ctftime_api_url)
         self.store = AnnouncementStore(settings.database_path)
+        self.certifications = CertificationStore(settings.database_path)
         self.announcer = WeeklyCTFAnnouncer(
             self, self.provider, self.store, settings.announcement_channel_id,
             settings.announcement_weekday, settings.announcement_hour_utc,
         )
 
     async def setup_hook(self) -> None:
+        self.commands.add_command(HelpCommand())
         self.commands.add_command(HealthCommand())
+        self.commands.add_command(
+            CertificationsCommand(
+                self.certifications, self.settings.crud_admin_password_hash
+            )
+        )
 
         @self.commands.command(name="ctfs", description="Show online CTFs in the coming week")
         async def ctfs(interaction: discord.Interaction) -> None:
