@@ -25,7 +25,7 @@ class HelpCommand(app_commands.Command):
         )
         embed.add_field(
             name="/health",
-            value="Show Raspberry Pi temperature, power status, memory, storage, and uptime.",
+            value="Show Raspberry Pi temperature, memory, storage, and uptime.",
             inline=False,
         )
         embed.add_field(

@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 import shutil
-import subprocess
 
 
 def read_proc_file(path: str) -> str:
@@ -89,35 +88,3 @@ def get_uptime() -> str:
     if minutes or not parts:
         parts.append(f"{minutes}m")
     return "up " + " ".join(parts)
-
-
-def get_power() -> str:
-    """Check Raspberry Pi power and throttling status via vcgencmd."""
-    try:
-        output = subprocess.check_output(
-            ["vcgencmd", "get_throttled"], text=True, stderr=subprocess.DEVNULL
-        ).strip()
-        _, _, hex_val = output.partition("=")
-        val = int(hex_val, 16)
-        if val == 0:
-            return "Normal"
-
-        issues = []
-        if val & 0x1:
-            issues.append("Under-voltage detected")
-        if val & 0x2:
-            issues.append("Arm frequency capped")
-        if val & 0x4:
-            issues.append("Currently throttled")
-        if val & 0x8:
-            issues.append("Soft temp limit active")
-        if not issues:
-            if val & 0x10000:
-                issues.append("Past under-voltage")
-            if val & 0x20000:
-                issues.append("Past frequency cap")
-            if val & 0x40000:
-                issues.append("Past throttling")
-        return ", ".join(issues) if issues else f"Throttled ({hex(val)})"
-    except (OSError, ValueError, subprocess.SubprocessError):
-        return "Unavailable"

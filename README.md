@@ -8,7 +8,7 @@ An automated Discord bot tailored for cybersecurity communities and clubs. It de
 
 - 🚩 **Weekly CTF Announcements**: Automatically discovers and posts upcoming online CTFs from CTFtime once a week, formatted in UTC+8 with competition weights, formats, and event links.
 - 📜 **Certifications Directory (`/certifications`)**: Community catalog of cybersecurity certifications with full CRUD support, categorizing certifications as Free/Paid and Hands-on/Theoretical. Sensitive actions (delete) are secured with an admin password hash.
-- 🩺 **Host & Hardware Health Monitoring (`/health`)**: Reports real-time Raspberry Pi telemetry including SoC temperature, power & undervoltage throttling (`vcgencmd`), RAM usage, disk usage, and uptime.
+- 🩺 **Host & Hardware Health Monitoring (`/health`)**: Reports real-time Raspberry Pi telemetry including SoC temperature, RAM usage, disk usage, and uptime.
 - 💬 **Slash Commands Suite**: Native Discord application slash commands (`/ctfs`, `/certifications`, `/health`, `/help`).
 - 🛡️ **Hardened & Lightweight**: Runs as a non-root container with dropped Linux capabilities, read-only host mounts, and transactional SQLite storage.
 
@@ -99,17 +99,6 @@ The bot includes a hardened `Dockerfile` and `docker-compose.yml` pre-configured
 - **Persistence**: SQLite database data is stored in the Docker named volume `bot-data`.
 - **Automatic restarts**: The container uses `restart: unless-stopped` to automatically recover from reboots or transient crashes.
 
-### Raspberry Pi Hardware Health Permissions
-
-For `/health` to read GPU power and throttling alerts via `/dev/vcio` on Raspberry Pi hosts, ensure the container's video group has access:
-
-```bash
-sudo chmod 660 /dev/vcio
-printf 'SUBSYSTEM=="misc", KERNEL=="vcio", GROUP="video", MODE="0660"\n' | sudo tee /etc/udev/rules.d/rpi-vcio.rules
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-```
-
 ---
 
 ## Architecture & Codebase Structure
@@ -127,7 +116,7 @@ bot/
 │   ├── ctfs.py               # CTF data model and CTFtime API client
 │   ├── announcements.py      # Portable message formatting (UTC+8)
 │   ├── scheduler.py          # Resilient WeeklyCTFAnnouncer task loop
-│   └── system.py             # Pure host telemetry (temperature, power, RAM, disk, uptime)
+│   └── system.py             # Pure host telemetry (temperature, RAM, disk, uptime)
 ├── storage/                  # SQLite persistence & models
 │   ├── database.py           # SQLite connection manager, SQLiteCrudStore, AnnouncementStore, CertificationStore
 │   └── models.py             # Certification data models

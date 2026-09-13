@@ -3,7 +3,6 @@
 from .commands.health import HealthCommand
 from .services.system import (
     get_memory,
-    get_power,
     get_storage,
     get_temperature,
     get_uptime,
@@ -19,7 +18,6 @@ __all__ = [
     "get_memory",
     "get_storage",
     "get_uptime",
-    "get_power",
     "read_proc_file",
     "_read",
 ]
