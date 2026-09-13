@@ -63,7 +63,7 @@ class WeeklyCTFAnnouncer:
 
         logger.info("Fetching upcoming CTFs for week %s announcement...", week)
         ctfs = await self.provider.upcoming_online(now)
-        await channel.send(format_ctfs(ctfs, now))
+        await channel.send(format_ctfs(ctfs, now), suppress_embeds=True)
         self.store.mark_sent(self.channel_id, week)
         logger.info("Sent weekly CTF announcement for %s to channel %s.", week, self.channel_id)
 

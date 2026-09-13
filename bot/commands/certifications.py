@@ -103,9 +103,9 @@ class CertificationsCommand(app_commands.Command):
 
         message = "\n".join(format_certification(cert) for cert in certifications)
         chunks = split_message(message)
-        await interaction.response.send_message(chunks[0])
+        await interaction.response.send_message(chunks[0], suppress_embeds=True)
         for chunk in chunks[1:]:
-            await interaction.followup.send(chunk)
+            await interaction.followup.send(chunk, suppress_embeds=True)
 
     async def _handle_create(
         self,
