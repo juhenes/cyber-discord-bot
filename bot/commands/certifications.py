@@ -17,6 +17,28 @@ def format_certification(certification: Certification) -> str:
     )
 
 
+def split_message(message: str, limit: int = 2000) -> list[str]:
+    """Split a Discord message without exceeding its content limit."""
+    chunks: list[str] = []
+    current = ""
+
+    for line in message.splitlines(keepends=True):
+        if len(line) > limit:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(line[index : index + limit] for index in range(0, len(line), limit))
+        elif len(current) + len(line) > limit:
+            chunks.append(current)
+            current = line
+        else:
+            current += line
+
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 # Backward compatibility alias
 _format_certification = format_certification
 
@@ -80,7 +102,10 @@ class CertificationsCommand(app_commands.Command):
             return
 
         message = "\n".join(format_certification(cert) for cert in certifications)
-        await interaction.response.send_message(message)
+        chunks = split_message(message)
+        await interaction.response.send_message(chunks[0])
+        for chunk in chunks[1:]:
+            await interaction.followup.send(chunk)
 
     async def _handle_create(
         self,

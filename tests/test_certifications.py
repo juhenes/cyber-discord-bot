@@ -54,4 +54,21 @@ def test_format_certification() -> None:
         is_free=False,
         hands_on=True,
     )
-    assert format_certification(paid_cert) == "2. OffSec: [OSCP](https://offsec.test) (Paid & Hands-on)"
+    assert format_certification(paid_cert) == "2. OffSec: [OSCP](https://offsec.test) (Paid & Hands-on)"
+
+
+def test_split_message_respects_discord_limit() -> None:
+    from bot.commands.certifications import split_message
+
+    chunks = split_message("first\nsecond\nthird", limit=13)
+
+    assert chunks == ["first\nsecond\n", "third"]
+    assert all(len(chunk) <= 13 for chunk in chunks)
+
+
+def test_split_message_splits_oversized_line() -> None:
+    from bot.commands.certifications import split_message
+
+    chunks = split_message("x" * 7, limit=3)
+
+    assert chunks == ["xxx", "xxx", "x"]
