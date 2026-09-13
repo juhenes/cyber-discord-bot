@@ -1,0 +1,1 @@
+"""Modular Discord bot for weekly CTF announcements."""
